@@ -1,0 +1,1044 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>汽水音乐 FLAC 解密器</title>
+    <script src="https://cdn.jsdelivr.net/npm/spark-md5@3.0.2/src/spark-md5.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #fff;
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .container {
+            max-width: 800px;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            background: linear-gradient(to right, #4facfe 0%, #00f2fe 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .subtitle {
+            font-size: 1.2rem;
+            color: #a0a0c0;
+            margin-bottom: 20px;
+        }
+        
+        .features {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        
+        .feature {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 15px;
+            text-align: center;
+            flex: 1;
+            min-width: 150px;
+        }
+        
+        .feature-icon {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+        
+        .upload-area {
+            border: 2px dashed #4facfe;
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+            margin: 30px 0;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: rgba(79, 172, 254, 0.1);
+        }
+        
+        .upload-area:hover {
+            background: rgba(79, 172, 254, 0.2);
+            transform: translateY(-5px);
+        }
+        
+        .upload-area.dragover {
+            background: rgba(79, 172, 254, 0.3);
+            border-color: #00f2fe;
+        }
+        
+        .upload-icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+        }
+        
+        .progress-container {
+            width: 100%;
+            background-color: #2a2a4a;
+            border-radius: 10px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+        
+        .progress-bar {
+            height: 10px;
+            background: linear-gradient(to right, #4facfe, #00f2fe);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
+        .status {
+            text-align: center;
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 1.1rem;
+        }
+        
+        .status.success {
+            background: rgba(46, 213, 115, 0.2);
+            color: #2ed573;
+            border: 1px solid rgba(46, 213, 115, 0.5);
+        }
+        
+        .status.error {
+            background: rgba(255, 71, 87, 0.2);
+            color: #ff4757;
+            border: 1px solid rgba(255, 71, 87, 0.5);
+        }
+        
+        .status.info {
+            background: rgba(79, 172, 254, 0.2);
+            color: #4facfe;
+            border: 1px solid rgba(79, 172, 254, 0.5);
+        }
+        
+        .result {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            display: none;
+        }
+        
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .btn {
+            background: linear-gradient(to right, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: block;
+            margin: 20px auto;
+            width: 100%;
+        }
+        
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(79, 172, 254, 0.3);
+        }
+        
+        .btn:disabled {
+            background: #555;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .info-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+        }
+        
+        .info-label {
+            font-size: 0.9rem;
+            color: #a0a0c0;
+            margin-bottom: 5px;
+        }
+        
+        .info-value {
+            font-size: 1.1rem;
+            font-weight: bold;
+        }
+        
+        footer {
+            margin-top: 40px;
+            text-align: center;
+            color: #a0a0c0;
+            font-size: 0.9rem;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .disclaimer {
+            background: rgba(255, 193, 7, 0.1);
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            border-radius: 0 10px 10px 0;
+            margin: 20px 0;
+            font-size: 0.9rem;
+        }
+        
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .features {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎵 汽水音乐 FLAC 解密器</h1>
+            <p class="subtitle">把伪装成 .php 的音乐还原成能播的 FLAC</p>
+        </header>
+        
+        <div class="features">
+            <div class="feature">
+                <div class="feature-icon">🔒</div>
+                <div>完全本地</div>
+                <div>文件不上传</div>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">⚡</div>
+                <div>极速处理</div>
+                <div>秒级解密</div>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">🎧</div>
+                <div>无损还原</div>
+                <div>保持音质</div>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">🛡️</div>
+                <div>隐私保护</div>
+                <div>无需登录</div>
+            </div>
+        </div>
+        
+        <div class="upload-area" id="uploadArea">
+            <div class="upload-icon">📁</div>
+            <h3>把 "歌名 - 歌手.php" 拖进来</h3>
+            <p>或点击下面的按钮从"文件/下载"里选</p>
+            <button class="btn" id="selectFileBtn">选择文件</button>
+            <input type="file" id="fileInput" accept=".php,.bin,.qsm,.mdl" hidden>
+        </div>
+        
+        <div class="progress-container">
+            <div class="progress-bar" id="progressBar"></div>
+        </div>
+        
+        <div class="status info" id="statusArea">
+            读取中…<br>
+            <small>请稍候，正在处理您的文件</small>
+        </div>
+        
+        <div class="result" id="resultArea">
+            <div class="result-header">
+                <h3>✓ 解密成功！</h3>
+                <span id="fileSize"></span>
+            </div>
+            <div class="info-grid" id="infoGrid">
+                <!-- 音频信息将在这里填充 -->
+            </div>
+            <button class="btn" id="downloadBtn">保存 FLAC 到手机</button>
+        </div>
+        
+        <div class="disclaimer">
+            <strong>⚠️ 法律声明：</strong> 本工具仅供学习音频编解码技术使用，请尊重版权，支持正版音乐。不得用于非法复制或传播受版权保护的内容。使用本工具产生的一切法律责任由用户自行承担。
+        </div>
+        
+        <footer>
+            <p>工具在本地跑 · 失败会明确报错，不会给你一个半成品 · 建议先用别的播放器再核对一遍</p>
+            <p>© 2024 汽水音乐解密器 | 仅供学习交流使用</p>
+        </footer>
+    </div>
+
+    <script>
+        // ============ FLAC 解密核心算法 ============
+        // 常量定义
+        const BSZ = [0, 192, 576, 1152, 2304, 4608, -1, -1, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768];
+        const RATE = [0, 88200, 176400, 192000, 8000, 16000, 22050, 24000, 32000, 44100, 48000, 96000, 0, 0, 0, -1];
+        
+        // CRC-8 计算
+        function crc8(data) {
+            let crc = 0;
+            for (let i = 0; i < data.length; i++) {
+                crc ^= data[i];
+                for (let j = 0; j < 8; j++) {
+                    if (crc & 0x80) {
+                        crc = ((crc << 1) ^ 0x07) & 0xFF;
+                    } else {
+                        crc = (crc << 1) & 0xFF;
+                    }
+                }
+            }
+            return crc;
+        }
+        
+        // UTF-8 编码/解码辅助函数
+        function utf8Len(b0) {
+            if (b0 < 0x80) return 1;
+            if (b0 >= 0xC0 && b0 < 0xE0) return 2;
+            if (b0 >= 0xE0 && b0 < 0xF0) return 3;
+            if (b0 >= 0xF0 && b0 < 0xF8) return 4;
+            if (b0 >= 0xF8 && b0 < 0xFC) return 5;
+            if (b0 >= 0xFC && b0 < 0xFE) return 6;
+            if (b0 === 0xFE) return 7;
+            return 0;
+        }
+        
+        function utf8Val(b) {
+            const n = b.length;
+            if (n === 1) return b[0];
+            if (n === 2) return ((b[0] & 0x1F) << 6) | (b[1] & 0x3F);
+            if (n === 3) return ((b[0] & 0x0F) << 12) | ((b[1] & 0x3F) << 6) | (b[2] & 0x3F);
+            if (n === 4) return ((b[0] & 0x07) << 18) | ((b[1] & 0x3F) << 12) | ((b[2] & 0x3F) << 6) | (b[3] & 0x3F);
+            return -1;
+        }
+        
+        function utf8Enc(n) {
+            if (n < 0x80) return new Uint8Array([n]);
+            if (n < 0x800) return new Uint8Array([0xC0 | (n >> 6), 0x80 | (n & 0x3F)]);
+            if (n < 0x10000) return new Uint8Array([0xE0 | (n >> 12), 0x80 | ((n >> 6) & 0x3F), 0x80 | (n & 0x3F)]);
+            return new Uint8Array([0xF0 | (n >> 18), 0x80 | ((n >> 12) & 0x3F), 0x80 | ((n >> 6) & 0x3F), 0x80 | (n & 0x3F)]);
+        }
+        
+        // 解析 ID3 标签
+        function parseID3(d) {
+            const tags = {};
+            let cover = null;
+            let tagLength = 0;
+            
+            if (d.length < 10 || d[0] !== 0x49 || d[1] !== 0x44 || d[2] !== 0x33) {
+                return { tagLength, tags, cover };
+            }
+            
+            // 计算标签大小
+            const size = (d[6] << 21) | (d[7] << 14) | (d[8] << 7) | d[9];
+            tagLength = 10 + size;
+            
+            const body = d.slice(10, tagLength);
+            let i = 0;
+            
+            while (i + 10 <= body.length) {
+                const fid = String.fromCharCode(body[i], body[i+1], body[i+2], body[i+3]);
+                
+                if (!/^[A-Z0-9]{4}$/.test(fid)) break;
+                
+                const fsz = (body[i+4] << 24) | (body[i+5] << 16) | (body[i+6] << 8) | body[i+7];
+                if (fsz <= 0 || i + 10 + fsz > body.length) break;
+                
+                const data = body.slice(i + 10, i + 10 + fsz);
+                
+                if (fid === 'APIC') {
+                    // 封面图片
+                    const enc = data[0];
+                    let z = data.indexOf(0, 1);
+                    const mime = data.slice(1, z).toString('latin1');
+                    const ptype = data[z + 1];
+                    let q = z + 2;
+                    
+                    if (enc === 1 || enc === 2) {
+                        while (q + 1 < data.length && !(data[q] === 0 && data[q + 1] === 0)) q += 2;
+                        q += 2;
+                    } else {
+                        q = data.indexOf(0, q) + 1;
+                    }
+                    
+                    cover = { mime, ptype, data: data.slice(q) };
+                } else if (fid[0] === 'T') {
+                    // 文本标签
+                    const enc = data[0];
+                    let txt = '';
+                    
+                    try {
+                        if (enc === 1 || enc === 2) {
+                            txt = data.slice(1).toString('utf-16');
+                        } else {
+                            txt = data.slice(1).toString('latin1');
+                        }
+                    } catch (e) {
+                        txt = '';
+                    }
+                    
+                    txt = txt.replace(/\0/g, '').trim();
+                    if (txt) {
+                        tags[fid] = txt;
+                    }
+                }
+                
+                i += 10 + fsz;
+            }
+            
+            return { tagLength, tags, cover };
+        }
+        
+        // 获取 JPEG 尺寸
+        function jpegSize(j) {
+            let i = 2;
+            while (i < j.length - 9) {
+                if (j[i] !== 0xFF) { i++; continue; }
+                
+                const m = j[i + 1];
+                if (m === 0xD8 || m === 0xD9 || (m >= 0xD0 && m <= 0xD7)) { i += 2; continue; }
+                
+                if (m >= 0xC0 && m <= 0xCF && m !== 0xC4 && m !== 0xC8 && m !== 0xCC) {
+                    const h = (j[i + 5] << 8) | j[i + 6];
+                    const w = (j[i + 7] << 8) | j[i + 8];
+                    return { w, h, depth: j[i + 9] * j[i + 10] };
+                }
+                
+                const len = (j[i + 2] << 8) | j[i + 3];
+                i += 2 + len;
+            }
+            return { w: 0, h: 0, depth: 24 };
+        }
+        
+        // 扫描 FLAC 帧
+        function scanFrames(d, start) {
+            const candidates = [];
+            
+            // 搜索帧头 0xFF 0xF8
+            for (let i = start; i < d.length - 4; i++) {
+                if (d[i] === 0xFF && d[i + 1] === 0xF8) {
+                    const f = i;
+                    const b2 = d[f + 2];
+                    const b3 = d[f + 3];
+                    
+                    if (b3 & 0x01) continue;
+                    
+                    const bsCode = b2 >> 4;
+                    const srCode = b2 & 0x0F;
+                    let q = f + 4;
+                    
+                    let bs = BSZ[bsCode];
+                    if (bsCode === 6) {
+                        bs = d[q] + 1;
+                        q += 1;
+                    } else if (bsCode === 7) {
+                        bs = ((d[q] << 8) | d[q + 1]) + 1;
+                        q += 2;
+                    }
+                    
+                    if (srCode === 12) {
+                        q += 1;
+                    } else if (srCode === 13 || srCode === 14) {
+                        q += 2;
+                    }
+                    
+                    if (q >= d.length) continue;
+                    
+                    const nl = utf8Len(d[q]);
+                    if (!nl || q + nl >= d.length) continue;
+                    
+                    q += nl;
+                    
+                    // CRC-8 校验
+                    const crcData = d.slice(f, q);
+                    if (crc8(crcData) !== d[q]) continue;
+                    
+                    candidates.push({
+                        off: f,
+                        hl: q - f,
+                        num: utf8Val(d.slice(q - nl, q)),
+                        bs: bs,
+                        sr: srCode,
+                        ch: b3 >> 4,
+                        bps: (b3 >> 1) & 7
+                    });
+                    
+                    i = q; // 跳过已处理的字节
+                }
+            }
+            
+            if (!candidates.length) return [];
+            
+            // 统计最常见的参数组合
+            const profiles = {};
+            for (const fr of candidates) {
+                const key = `${fr.bs},${fr.sr},${fr.bps}`;
+                profiles[key] = (profiles[key] || 0) + 1;
+            }
+            
+            let bestKey = '';
+            let bestCount = 0;
+            for (const key in profiles) {
+                if (profiles[key] > bestCount) {
+                    bestCount = profiles[key];
+                    bestKey = key;
+                }
+            }
+            
+            const [bs, sr, bps] = bestKey.split(',').map(Number);
+            
+            // 过滤出参数一致的帧
+            const frames = candidates.filter(fr => 
+                fr.bs === bs && fr.sr === sr && fr.bps === bps && fr.ch <= 10
+            );
+            
+            // 按偏移排序
+            frames.sort((a, b) => a.off - b.off);
+            
+            // 取帧号最长的连续段
+            let best = [];
+            let run = [];
+            let expect = null;
+            
+            for (const fr of frames) {
+                if (expect === null || fr.num === expect) {
+                    run.push(fr);
+                    expect = fr.num + 1;
+                } else {
+                    if (run.length > best.length) {
+                        best = [...run];
+                    }
+                    run = [fr];
+                    expect = fr.num + 1;
+                }
+            }
+            
+            if (run.length > best.length) {
+                best = [...run];
+            }
+            
+            return best;
+        }
+        
+        // 构建标准 FLAC 文件
+        function buildFlac(d, tagLength, tags, cover, frames) {
+            const n = frames.length;
+            const bs = frames[0].bs;
+            const sr = RATE[frames[0].sr];
+            const ch = frames[0].ch >= 8 ? 2 : frames[0].ch + 1;
+            const bps = [0, 8, 12, 0, 16, 20, 24, 32][frames[0].bps] || 16;
+            const total = n * bs;
+            
+            // 计算帧大小
+            const sizes = [];
+            for (let i = 0; i < n; i++) {
+                const end = i + 1 < n ? frames[i + 1].off : d.length;
+                sizes.push(end - frames[i].off);
+            }
+            
+            const minfs = Math.min(...sizes);
+            const maxfs = Math.max(...sizes);
+            
+            // STREAMINFO 块
+            const si = new Uint8Array(38);
+            const siView = new DataView(si.buffer);
+            
+            // 块大小
+            siView.setUint16(0, bs, false);
+            siView.setUint16(2, bs, false);
+            
+            // 帧大小范围
+            si[4] = (minfs >> 16) & 0xFF;
+            si[5] = (minfs >> 8) & 0xFF;
+            si[6] = minfs & 0xFF;
+            
+            si[7] = (maxfs >> 16) & 0xFF;
+            si[8] = (maxfs >> 8) & 0xFF;
+            si[9] = maxfs & 0xFF;
+            
+            // 时长、声道、位深度
+            const sampleRate = sr;
+            const channelCount = ch;
+            const bitsPerSample = bps;
+            const totalSamples = total;
+            
+            // 编码为 FLAC 格式
+            let packed = (sampleRate << 44) | ((channelCount - 1) << 41) | ((bitsPerSample - 1) << 36) | totalSamples;
+            
+            si[10] = (packed >> 56) & 0xFF;
+            si[11] = (packed >> 48) & 0xFF;
+            si[12] = (packed >> 40) & 0xFF;
+            si[13] = (packed >> 32) & 0xFF;
+            si[14] = (packed >> 24) & 0xFF;
+            si[15] = (packed >> 16) & 0xFF;
+            si[16] = (packed >> 8) & 0xFF;
+            si[17] = packed & 0xFF;
+            
+            // MD5 (占位，实际应计算音频MD5)
+            const md5 = new Uint8Array(16);
+            si.set(md5, 18);
+            
+            const blocks = [];
+            
+            // STREAMINFO 块
+            blocks.push({ type: 0, data: si });
+            
+            // VORBIS_COMMENT 块 (标签)
+            const vendorString = 'reference libFLAC 1.4.3 20230623';
+            const vendorBytes = new TextEncoder().encode(vendorString);
+            
+            const comments = [];
+            const tagMapping = {
+                'TIT2': 'TITLE',
+                'TPE1': 'ARTIST',
+                'TALB': 'ALBUM',
+                'TRCK': 'TRACKNUMBER',
+                'TYER': 'DATE',
+                'TCON': 'GENRE'
+            };
+            
+            for (const src in tagMapping) {
+                if (tags[src]) {
+                    const dst = tagMapping[src];
+                    const comment = `${dst}=${tags[src]}`;
+                    comments.push(new TextEncoder().encode(comment));
+                }
+            }
+            
+            // 计算 VORBIS_COMMENT 大小
+            let vcSize = 4 + vendorBytes.length + 4; // vendor length + vendor + comment count
+            for (const c of comments) {
+                vcSize += 4 + c.length;
+            }
+            
+            const vc = new Uint8Array(vcSize);
+            const vcView = new DataView(vc.buffer);
+            let vcOffset = 0;
+            
+            // 写入 vendor 长度
+            vcView.setUint32(vcOffset, vendorBytes.length, true);
+            vcOffset += 4;
+            
+            // 写入 vendor 字符串
+            vc.set(vendorBytes, vcOffset);
+            vcOffset += vendorBytes.length;
+            
+            // 写入 comment 数量
+            vcView.setUint32(vcOffset, comments.length, true);
+            vcOffset += 4;
+            
+            // 写入每个 comment
+            for (const c of comments) {
+                vcView.setUint32(vcOffset, c.length, true);
+                vcOffset += 4;
+                vc.set(c, vcOffset);
+                vcOffset += c.length;
+            }
+            
+            blocks.push({ type: 4, data: vc });
+            
+            // PICTURE 块 (封面)
+            if (cover && cover.data) {
+                const { mime, ptype, data } = cover;
+                const { w, h, depth } = jpegSize(data);
+                
+                // 计算图片块大小
+                const mimeBytes = new TextEncoder().encode(mime);
+                const picSize = 4 + 4 + mimeBytes.length + 4 + 4 + 4 + 4 + 4 + 4 + data.length;
+                
+                const pic = new Uint8Array(picSize);
+                const picView = new DataView(pic.buffer);
+                let picOffset = 0;
+                
+                // 图片类型
+                picView.setUint32(picOffset, ptype, false);
+                picOffset += 4;
+                
+                // MIME 类型长度
+                picView.setUint32(picOffset, mimeBytes.length, false);
+                picOffset += 4;
+                
+                // MIME 类型
+                pic.set(mimeBytes, picOffset);
+                picOffset += mimeBytes.length;
+                
+                // 描述长度
+                picView.setUint32(picOffset, 0, false);
+                picOffset += 4;
+                
+                // 宽度
+                picView.setUint32(picOffset, w, false);
+                picOffset += 4;
+                
+                // 高度
+                picView.setUint32(picOffset, h, false);
+                picOffset += 4;
+                
+                // 颜色深度
+                picView.setUint32(picOffset, depth, false);
+                picOffset += 4;
+                
+                // 使用的颜色数
+                picView.setUint32(picOffset, 0, false);
+                picOffset += 4;
+                
+                // 图片数据长度
+                picView.setUint32(picOffset, data.length, false);
+                picOffset += 4;
+                
+                // 图片数据
+                pic.set(data, picOffset);
+                
+                blocks.push({ type: 6, data: pic });
+            }
+            
+            // 构建文件
+            const output = [];
+            
+            // fLaC 标识
+            output.push(new Uint8Array([0x66, 0x4C, 0x61, 0x43]));
+            
+            // 写入元数据块
+            for (let i = 0; i < blocks.length; i++) {
+                const { type, data } = blocks[i];
+                const isLast = i === blocks.length - 1;
+                
+                // 块头：类型+最后块标志
+                const header = new Uint8Array(4);
+                header[0] = type | (isLast ? 0x80 : 0x00);
+                header[1] = (data.length >> 16) & 0xFF;
+                header[2] = (data.length >> 8) & 0xFF;
+                header[3] = data.length & 0xFF;
+                
+                output.push(header);
+                output.push(data);
+            }
+            
+            // 写入音频帧
+            for (let i = 0; i < frames.length; i++) {
+                const fr = frames[i];
+                
+                // 帧头：同步代码+块大小+采样率+声道+位深度
+                const header = new Uint8Array(4 + utf8Enc(i).length);
+                header.set(d.slice(fr.off, fr.off + 4), 0);
+                header.set(utf8Enc(i), 4);
+                
+                // 计算 CRC-8
+                const crc = crc8(header);
+                
+                output.push(header);
+                output.push(new Uint8Array([crc]));
+                
+                // 帧数据
+                const end = i + 1 < frames.length ? frames[i + 1].off : d.length;
+                output.push(d.slice(fr.off + fr.hl + 1, end));
+            }
+            
+            // 合并所有部分
+            let totalLength = 0;
+            for (const part of output) {
+                totalLength += part.length;
+            }
+            
+            const result = new Uint8Array(totalLength);
+            let offset = 0;
+            
+            for (const part of output) {
+                result.set(part, offset);
+                offset += part.length;
+            }
+            
+            return {
+                data: result,
+                info: {
+                    sr: sr,
+                    ch: ch,
+                    bps: bps,
+                    bs: bs,
+                    total: total,
+                    n: n,
+                    minfs: minfs,
+                    maxfs: maxfs
+                }
+            };
+        }
+        
+        // ============ 界面逻辑 ============
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const selectFileBtn = document.getElementById('selectFileBtn');
+        const progressBar = document.getElementById('progressBar');
+        const statusArea = document.getElementById('statusArea');
+        const resultArea = document.getElementById('resultArea');
+        const infoGrid = document.getElementById('infoGrid');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const fileSizeSpan = document.getElementById('fileSize');
+        
+        let decryptedData = null;
+        let fileName = '';
+        
+        // 点击上传区域或按钮选择文件
+        uploadArea.addEventListener('click', () => fileInput.click());
+        selectFileBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            fileInput.click();
+        });
+        
+        // 文件拖放功能
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, preventDefaults, false);
+        });
+        
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        
+        ['dragenter', 'dragover'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, highlight, false);
+        });
+        
+        ['dragleave', 'drop'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, unhighlight, false);
+        });
+        
+        function highlight() {
+            uploadArea.classList.add('dragover');
+        }
+        
+        function unhighlight() {
+            uploadArea.classList.remove('dragover');
+        }
+        
+        uploadArea.addEventListener('drop', handleDrop, false);
+        
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            
+            if (files.length) {
+                handleFile(files[0]);
+            }
+        }
+        
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length) {
+                handleFile(e.target.files[0]);
+            }
+        });
+        
+        async function handleFile(file) {
+            // 检查文件类型
+            const validTypes = ['.php', '.bin', '.qsm', '.mdl'];
+            const isValid = validTypes.some(type => file.name.toLowerCase().endsWith(type));
+            
+            if (!isValid) {
+                showStatus('error', '不支持的文件类型，请选择 .php、.bin、.qsm 或 .mdl 文件');
+                return;
+            }
+            
+            fileName = file.name;
+            showStatus('info', `开始处理文件: ${file.name}`);
+            
+            try {
+                // 读取文件
+                const arrayBuffer = await readFileAsArrayBuffer(file);
+                const data = new Uint8Array(arrayBuffer);
+                
+                // 更新进度
+                updateProgress(20, '解析文件结构...');
+                
+                // 解析 ID3 标签
+                const { tagLength, tags, cover } = parseID3(data);
+                
+                // 更新进度
+                updateProgress(40, '扫描 FLAC 帧...');
+                
+                // 扫描帧
+                const frames = scanFrames(data, tagLength);
+                
+                if (!frames.length) {
+                    showStatus('error', '未找到有效的 FLAC 帧，这个文件可能不是伪装的 FLAC 格式。');
+                    return;
+                }
+                
+                // 更新进度
+                updateProgress(60, '重建 FLAC 文件...');
+                
+                // 构建 FLAC 文件
+                const { data: flacData, info } = buildFlac(data, tagLength, tags, cover, frames);
+                
+                // 更新进度
+                updateProgress(90, '完成处理...');
+                
+                // 显示结果
+                decryptedData = flacData;
+                showResult(flacData, info, tags, cover);
+                
+                // 完成进度
+                updateProgress(100, '解密完成！');
+                
+            } catch (error) {
+                console.error('解密错误:', error);
+                showStatus('error', `解密失败: ${error.message}`);
+            }
+        }
+        
+        function readFileAsArrayBuffer(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+                
+                reader.readAsArrayBuffer(file);
+            });
+        }
+        
+        function updateProgress(percent, message) {
+            progressBar.style.width = `${percent}%`;
+            if (message) {
+                statusArea.innerHTML = `${message}<br><small>请稍候，正在处理您的文件</small>`;
+            }
+        }
+        
+        function showStatus(type, message) {
+            statusArea.className = `status ${type}`;
+            statusArea.innerHTML = message;
+        }
+        
+        function showResult(flacData, info, tags, cover) {
+            // 计算文件大小
+            const fileSize = flacData.length;
+            const fileSizeMB = (fileSize / 1024 / 1024).toFixed(2);
+            
+            // 显示文件大小
+            fileSizeSpan.textContent = `${fileSizeMB} MB`;
+            
+            // 计算时长
+            const duration = info.total / info.sr;
+            const minutes = Math.floor(duration / 60);
+            const seconds = (duration % 60).toFixed(2);
+            
+            // 显示音频信息
+            let infoHTML = '';
+            
+            infoHTML += `<div class="info-item">
+                <div class="info-label">时长</div>
+                <div class="info-value">${minutes}:${seconds.padStart(6, '0')}</div>
+            </div>`;
+            
+            infoHTML += `<div class="info-item">
+                <div class="info-label">采样率</div>
+                <div class="info-value">${info.sr} Hz</div>
+            </div>`;
+            
+            infoHTML += `<div class="info-item">
+                <div class="info-label">声道</div>
+                <div class="info-value">${info.ch === 2 ? '立体声' : `${info.ch} 声道`}</div>
+            </div>`;
+            
+            infoHTML += `<div class="info-item">
+                <div class="info-label">位深度</div>
+                <div class="info-value">${info.bps} bit</div>
+            </div>`;
+            
+            if (tags.TIT2) {
+                infoHTML += `<div class="info-item">
+                    <div class="info-label">标题</div>
+                    <div class="info-value">${tags.TIT2}</div>
+                </div>`;
+            }
+            
+            if (tags.TPE1) {
+                infoHTML += `<div class="info-item">
+                    <div class="info-label">艺术家</div>
+                    <div class="info-value">${tags.TPE1}</div>
+                </div>`;
+            }
+            
+            if (tags.TALB) {
+                infoHTML += `<div class="info-item">
+                    <div class="info-label">专辑</div>
+                    <div class="info-value">${tags.TALB}</div>
+                </div>`;
+            }
+            
+            // 显示封面（如果有）
+            if (cover && cover.data) {
+                const coverBlob = new Blob([cover.data], { type: cover.mime });
+                const coverUrl = URL.createObjectURL(coverBlob);
+                
+                infoHTML += `<div class="info-item">
+                    <div class="info-label">封面</div>
+                    <div class="info-value"><img src="${coverUrl}" style="max-width: 100px; max-height: 100px; border-radius: 5px;"></div>
+                </div>`;
+            }
+            
+            infoGrid.innerHTML = infoHTML;
+            
+            // 显示结果区域
+            resultArea.style.display = 'block';
+            
+            // 设置下载按钮
+            downloadBtn.onclick = () => {
+                const blob = new Blob([flacData], { type: 'audio/flac' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = fileName.replace(/\.[^/.]+$/, "") + '.flac';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            };
+            
+            // 显示成功状态
+            showStatus('success', `✓ 解密成功！找到 ${info.n} 帧，时长 ${minutes}:${seconds.padStart(6, '0')} 秒`);
+        }
+        
+        // 初始化状态
+        showStatus('info', '准备就绪<br><small>选择或拖放文件开始解密</small>');
+    </script>
+</body>
+</html>
